@@ -17,7 +17,7 @@ import sys
 # garbage collection
 import gc
 
-import Function
+import Distance_function
 
 cv.setUseOptimized(True)
 car_cascade = cv.CascadeClassifier('cascade_10000_30000.xml')
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     #get fps
     fps = cap.get(cv.CAP_PROP_FPS)
     #set how many threads could be run in same time
-    semaphore = threading.Semaphore(2)
+    semaphore = threading.Semaphore(4)
     #count frame
     cnt=0
     '''
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     #record the start time
     t1=time.time()
     while True:
-        cnt =cnt+1
+        
         #get frame from input video and compress it
         flag, img = cap.read()
         h,w,depth=img.shape
@@ -68,18 +68,26 @@ if __name__ == '__main__':
         img=cv.resize(img,(int(w),int(h)),interpolation=cv.INTER_AREA)
         img2=img
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        ace=random.random()
         #less the threads in pool to prevent overusing the memory
         #and make sure that the processing frame is the newest
-        if threading.activeCount()>5:
+        if threading.activeCount()>4:
             cv.imshow('video', img)
             continue
+        cnt =cnt+1
         #put frame and other message into thread and run it 
-        th=threading.Thread(target = Function.Distance, args = (flag,gray,img,semaphore,Velocity,Q,Acceleration,car_cascade))
+        if(Velocity>80):
+            Velocity -= ace
+        elif(Velocity<40):
+            Velocity += ace
+        else:
+            if(random.randint(1,10)%2==0):
+                Velocity+=ace
+            else:
+                Velocity-=ace
+        th=threading.Thread(target = Distance_function.Distance, args = (flag,gray,img,semaphore,Velocity,Q,Acceleration,car_cascade))
         th.setDaemon(True)
         th.start()
-        fh=threading.Thread(target = Function.Brightness, args = (flag,img2,gray,semaphore))
-        fh.setDaemon(True)
-        fh.start()
         #collect the garbage in memory
         gc.collect()
         #if "esc" key was pressed , break and leave
@@ -87,11 +95,10 @@ if __name__ == '__main__':
         if ch == 27:
             break
     t2=time.time()
-    GPIO.cleanup()
+    #GPIO.cleanup()
     print('Video\'s FPS: {:f}'.format(fps))
     print('Process time: {:f}'.format(t2-t1))
     print('Frame count: {:d}'.format(cnt))
     print('pFPS: {:f}'.format(1/((t2-t1)/cnt)))
 
     cv.destroyAllWindows()
-

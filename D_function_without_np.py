@@ -20,7 +20,7 @@ def Distance(flag,gray,img,lock,v,Q,Acceleration,car_cascade):
     #variables declare
     p1=time.time()
     lock.acquire()
-    d=np.array(0)
+    d=[]
     S=0
     #make blur
     gray=cv.bilateralFilter(gray, 5, 21, 21)
@@ -33,23 +33,28 @@ def Distance(flag,gray,img,lock,v,Q,Acceleration,car_cascade):
     d:find out which region sould detected cars located
     e:the top 3 of d
     '''
-    Cac=np.array(cars)
+    Cac=cars
     v2=v
-    if(Cac.size > 0):
-        b=Cac[:,2:3].copy()
-        b=b.astype(float)
-        b=63360/b
+    if(len(Cac)> 0):
+        b=Cac[:,2:3]
+        b=[float(tmp) for tmp in b]
+        b=[63360/tmp for tmp in b]
         v=v*27.78
-        c=(v*v)/Acceleration
-        d=np.searchsorted(c,b)
-        d=10-d
-    d=d.flatten()
+        c=[(v*v)/tmp for tmp in Acceleration]
+        for i in b :
+            for j in range(0,11) :
+                if(i < c[j]):
+                    d.append(j)
+                    break
+        d=[10-tmp for tmp in d]
+    d=[tmp for tmp in d]
     if(len(d)>3):
-        e=d[np.argpartition(d, -3)[-3:]]
+        e=d.sort(reverse=True)
+        e=d[0:3]
     elif(len(d))>0:
         e=d
     else:
-        e=np.array([0,0]).flatten()
+        e=[0,0]
     '''
     operate Queue to communicate with other threads
     and record the result of self
